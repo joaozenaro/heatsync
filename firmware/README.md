@@ -23,6 +23,12 @@ Para compilar e enviar seu código para o ESP32, você pode usar os comandos do 
 pio run --target upload
 ```
 
+Se o upload falhar, verifique as permissões
+
+```bash
+sudo chmod 777 /dev/ttyUSB0
+```
+
 ### Monitoramento da Saída Serial
 
 Para monitorar a saída serial do ESP32, use o seguinte comando:

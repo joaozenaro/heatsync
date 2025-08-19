@@ -7,6 +7,14 @@ dev:
 	tmux split-window -h -t dev 'cd frontend && PORT=3001 npm run dev'
 	tmux attach -t dev
 
+install:
+	@echo "Installing backend and frontend dependencies..."
+	@(cd backend && npm install)
+	@(cd frontend && npm install)
+
+i:
+	@$(MAKE) install
+
 help:
 	@echo "Makefile Helper."
 	@echo ""

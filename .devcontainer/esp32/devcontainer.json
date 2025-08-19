@@ -3,6 +3,7 @@
     "build": {
         "dockerfile": "Dockerfile"
     },
+    "workspaceFolder": "/workspaces/heatsync/firmware",
     "customizations": {
         "vscode": {
             "settings": {

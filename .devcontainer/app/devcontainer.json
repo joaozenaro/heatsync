@@ -1,4 +1,5 @@
 {
+    "name": "Application Development container",
     "dockerComposeFile": "docker-compose.yml",
     "service": "devcontainer",
     "workspaceFolder": "/workspaces/heatsync",
