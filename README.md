@@ -10,7 +10,7 @@ Este projeto é uma aplicação de dashboard IoT full-stack para monitorar umida
 - [ ] Exportação de dados para intervalos de datas selecionados
 - [ ] Autenticação via Auth0
 
-## Tecnologias Utilizadas (Tech Stack)
+## Tech Stack
 
 | Categoria               | Tecnologia                                                              |
 | ----------------------- | ----------------------------------------------------------------------- |
@@ -20,7 +20,7 @@ Este projeto é uma aplicação de dashboard IoT full-stack para monitorar umida
 | Backend                 | [NestJS](https://docs.nestjs.com/)                                      |
 |                         | [Socket.io](https://socket.io/)                                         |
 |                         | [TypeORM](https://typeorm.io/)                                          |
-| Dispositivos / Firmware | ESP32 com [PlatformIO](https://docs.platformio.org/en/latest/)          |
+| Dispositivo / Firmware  | ESP32 com [PlatformIO](https://docs.platformio.org/en/latest/)          |
 | Banco de Dados          | [PostgreSQL](https://www.postgresql.org/)                               |
 |                         | [TimescaleDB](https://github.com/timescale/timescaledb)                 |
 | MQTT                    | [Mosquitto MQTT](https://mosquitto.org/)                                |
