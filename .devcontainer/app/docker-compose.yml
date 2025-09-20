@@ -9,18 +9,20 @@ services:
     command: sleep infinity
     volumes:
       - ../..:/workspaces/heatsync
-    network_mode: "host"
+    networks:
+      - app-network
 
   mosquitto:
     image: eclipse-mosquitto:latest
     restart: unless-stopped
-    network_mode: "host"
-    command: >
-      /bin/sh -c "
-      echo 'listener 1884 0.0.0.0' > /mosquitto/config/mosquitto.conf
-      && echo 'allow_anonymous true' >> /mosquitto/config/mosquitto.conf
-      && mosquitto -c /mosquitto/config/mosquitto.conf
-      "
+    networks:
+      - app-network
+    ports:
+      - "1884:1884"
+    volumes:
+      - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
+      - ./mosquitto/config/passwordfile:/mosquitto/config/passwordfile
 
-volumes:
-  postgres-data:
+networks:
+  app-network:
+    driver: bridge

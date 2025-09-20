@@ -4,8 +4,8 @@
 
 ## Pré-requisitos
 
-* Docker
-* Visual Studio Code, com a extensão para desenvolvimento com contêineres
+- Docker
+- Visual Studio Code, com a extensão para desenvolvimento com contêineres
 
 ### Requisitos para WSL
 
@@ -35,4 +35,16 @@ Para monitorar a saída serial do ESP32, use o seguinte comando:
 
 ```bash
 pio serial monitor
+```
+
+### Abrir firewall
+
+```powershell
+
+netsh interface portproxy reset
+
+netsh interface portproxy add v4tov4 listenaddress=192.168.137.1 listenport=1884 connectaddress=172.27.30.109 connectport=1884
+
+netsh interface portproxy delete v4tov4 listenaddress=192.168.137.1 listenport=1884
+
 ```

@@ -3,7 +3,7 @@
 default: help
 
 dev:
-	tmux new-session -d -s dev 'cd backend && npm run start:dev'
+	tmux new-session -d -s dev 'cd backend && npm run start:debug'
 	tmux split-window -h -t dev 'cd frontend && PORT=3001 npm run dev'
 	tmux attach -t dev
 
