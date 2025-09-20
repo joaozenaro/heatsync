@@ -9,20 +9,14 @@ services:
     command: sleep infinity
     volumes:
       - ../..:/workspaces/heatsync
-    networks:
-      - app-network
+    network_mode: "host"
 
   mosquitto:
     image: eclipse-mosquitto:latest
     restart: unless-stopped
-    networks:
-      - app-network
     ports:
       - "1884:1884"
     volumes:
       - ./mosquitto/config/mosquitto.conf:/mosquitto/config/mosquitto.conf
       - ./mosquitto/config/passwordfile:/mosquitto/config/passwordfile
-
-networks:
-  app-network:
-    driver: bridge
+    network_mode: "host"
