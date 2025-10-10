@@ -1,0 +1,22 @@
+// https://zellij.dev/documentation/creating-a-layout.html
+layout {
+  tab {
+    pane split_direction="vertical" {
+      pane {
+        name "Backend"
+        command "npm"
+        args "run" "start:debug"
+        cwd "backend"
+      }
+      pane {
+        name "Frontend"
+        command "npm"
+        args "run" "dev"
+        cwd "frontend"
+      }
+    }
+    pane size=1 borderless=true {
+      plugin location="zellij:compact-bar"
+    }
+  }
+}

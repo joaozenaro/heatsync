@@ -5,7 +5,7 @@ WORKDIR /workspaces/heatsync
 RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 
 RUN apk add --no-cache --update \
-    curl git bash sudo make tmux \
+    curl git bash sudo make zellij \
     nodejs npm deno \
     postgresql-client
 

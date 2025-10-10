@@ -11,16 +11,17 @@
 #define DHTTYPE DHT11
 
 #if USE_TLS
-  #include <WiFiClientSecure.h>
-  WiFiClientSecure espClient;
+#include <WiFiClientSecure.h>
+WiFiClientSecure espClient;
 #else
-  WiFiClient espClient;
+WiFiClient espClient;
 #endif
 
 PubSubClient client(espClient);
 DHT dht(DHTPIN, DHTTYPE);
 
-void setup_wifi() {
+void setup_wifi()
+{
     delay(10);
     Serial.println();
     Serial.print("Connecting to ");
@@ -30,7 +31,8 @@ void setup_wifi() {
     WiFi.mode(WIFI_STA);
     WiFi.begin(ssid, password);
 
-    while (WiFi.status() != WL_CONNECTED) {
+    while (WiFi.status() != WL_CONNECTED)
+    {
         delay(500);
         Serial.print(".");
     }
@@ -45,12 +47,17 @@ void setup_wifi() {
     Serial.println(WiFi.localIP());
 }
 
-void reconnect() {
-    while (!client.connected()) {
+void reconnect()
+{
+    while (!client.connected())
+    {
         Serial.print("Attempting MQTT connection...");
-        if (client.connect("ESP32Client", mqtt_username, mqtt_password)) {
+        if (client.connect("ESP32Client", mqtt_username, mqtt_password))
+        {
             Serial.println("connected");
-        } else {
+        }
+        else
+        {
             Serial.print("failed, rc=");
             Serial.print(client.state());
             Serial.println(" try again in 5 seconds");
@@ -59,7 +66,8 @@ void reconnect() {
     }
 }
 
-void setDateTime() {
+void setDateTime()
+{
     configTime(0, 0, "pool.ntp.org", "time.nist.gov");
     Serial.print("Waiting for NTP time sync...");
 
@@ -67,7 +75,8 @@ void setDateTime() {
     const int maxRetries = 30; // ~30 seconds max wait
     time_t now = time(nullptr);
 
-    while (now < 100000 && retries < maxRetries) {
+    while (now < 100000 && retries < maxRetries)
+    {
         delay(500);
         Serial.print(".");
         now = time(nullptr);
@@ -75,44 +84,55 @@ void setDateTime() {
     }
 
     Serial.println();
-    if (now < 100000) {
+    if (now < 100000)
+    {
         Serial.println("Failed to sync NTP time");
-    } else {
+    }
+    else
+    {
         Serial.println("Time synced: " + String(ctime(&now)));
     }
 }
 
-void setup() {
+void setup()
+{
     pinMode(LED_BUILTIN, OUTPUT);
     Serial.begin(115200);
     dht.begin();
     setup_wifi();
     setDateTime();
-    
+
 #if USE_TLS
     espClient.setInsecure();
 #endif
-    
+
     client.setServer(mqtt_server, mqtt_port);
 }
 
-void loop() {
+void loop()
+{
     static unsigned long lastMsg = 0;
-    if (!client.connected()) {
+    if (!client.connected())
+    {
         reconnect();
     }
     client.loop();
 
     unsigned long now = millis();
-    if (now - lastMsg > 10000) { // 10 seconds
+    if (now - lastMsg > reading_interval_millis)
+    {
         lastMsg = now;
         float temperature = dht.readTemperature();
-        if (!isnan(temperature)) {
-            String payload = String(temperature);
+        if (!isnan(temperature))
+        {
+            String deviceId = WiFi.macAddress();
+            String payload = "{\"temperature\":" + String(temperature) + ",\"deviceId\":\"" + deviceId + "\"}";
             client.publish("heatsync/temperature", payload.c_str());
-            Serial.print("Published temperature: ");
+            Serial.print("Published message: ");
             Serial.println(payload);
-        } else {
+        }
+        else
+        {
             Serial.println("Failed to read temperature");
         }
     }
