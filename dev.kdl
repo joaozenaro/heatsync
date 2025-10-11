@@ -19,4 +19,15 @@ layout {
       plugin location="zellij:compact-bar"
     }
   }
+  tab {
+    pane {
+      name "Drizzle Studio"
+      command "npx"
+      args "drizzle-kit" "studio"
+      cwd "backend"
+    }
+    pane size=1 borderless=true {
+      plugin location="zellij:compact-bar"
+    }
+  }
 }

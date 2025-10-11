@@ -19,7 +19,7 @@ Este projeto é uma aplicação de dashboard IoT full-stack para monitorar umida
 |                        | [shadcn/ui](https://ui.shadcn.com/)                            |
 | Backend                | [NestJS](https://docs.nestjs.com/)                             |
 |                        | [Socket.io](https://socket.io/)                                |
-|                        | [TypeORM](https://typeorm.io/)                                 |
+|                        | [Drizzle ORM](https://orm.drizzle.team/docs/get-started)       |
 | Dispositivo / Firmware | ESP32 com [PlatformIO](https://docs.platformio.org/en/latest/) |
 | Banco de Dados         | [PostgreSQL](https://www.postgresql.org/)                      |
 | MQTT                   | [Mosquitto MQTT](https://mosquitto.org/)                       |

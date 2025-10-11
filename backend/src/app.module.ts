@@ -3,6 +3,7 @@ import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { MqttService } from './mqtt.service';
 import { ConfigModule } from '@nestjs/config';
+import { TemperatureModule } from './temperature/temperature.module';
 
 @Module({
   imports: [
@@ -10,6 +11,7 @@ import { ConfigModule } from '@nestjs/config';
       envFilePath: `.env.${process.env.NODE_ENV || 'development'}`,
       isGlobal: true,
     }),
+    TemperatureModule,
   ],
   controllers: [AppController],
   providers: [AppService, MqttService],

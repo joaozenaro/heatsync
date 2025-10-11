@@ -1,21 +1,12 @@
 import { Controller, Get } from '@nestjs/common';
 import { AppService } from './app.service';
-import { MqttService } from './mqtt.service';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    private readonly mqttService: MqttService,
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   getHello(): string {
     return this.appService.getHello();
-  }
-
-  @Get('temperature')
-  getTemperature(): { temperature: string | null } {
-    return { temperature: this.mqttService.getLatestTemperature() };
   }
 }
