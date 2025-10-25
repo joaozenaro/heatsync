@@ -17,5 +17,6 @@
     "fs",
     "http",
     "net"
-  ]
+  ],
+  "editor.defaultFormatter": "esbenp.prettier-vscode"
 }

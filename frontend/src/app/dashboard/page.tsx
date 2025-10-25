@@ -6,8 +6,24 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
+import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation"
 
-export default function Page() {
+export default async function DashboardPage() {
+  const supabase = await createClient();
+
+  // const { data, error } = await supabase.auth.getClaims();
+  // if (error || !data?.claims) {
+  //   redirect("/auth/login");
+  // }
+
+  const { data: userData } = await supabase.auth.getUser();
+  const user = {
+    name: userData?.user?.user_metadata?.name || userData?.user?.email,
+    email: userData?.user?.email || "",
+    avatar: userData?.user?.user_metadata?.avatar_url || "",
+  };
+
   return (
     <SidebarProvider
       style={
@@ -17,9 +33,9 @@ export default function Page() {
         } as React.CSSProperties
       }
     >
-      <AppSidebar variant="inset" />
+      <AppSidebar variant="inset" user={user} />
       <SidebarInset>
-        <SiteHeader />
+        <SiteHeader title="Dashboard" />
         <div className="flex flex-1 flex-col">
           <div className="@container/main flex flex-1 flex-col gap-2">
             <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
