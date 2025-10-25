@@ -7,7 +7,7 @@ RUN ln -snf /usr/share/zoneinfo/UTC /etc/localtime && echo UTC > /etc/timezone
 RUN apk add --no-cache --update \
     curl git bash sudo make zellij \
     nodejs npm deno \
-    postgresql-client
+    postgresql-client openssh-client github-cli
 
 ARG USERNAME=vscode
 ARG USER_UID=1000
