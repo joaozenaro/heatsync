@@ -6,9 +6,7 @@
     "customizations": {
         "vscode": {
             "settings": {
-                "terminal.integrated.defaultProfile.linux": "bash",
-                "editor.defaultFormatter": "esbenp.prettier-vscode",
-                "editor.formatOnSave": true
+                "terminal.integrated.defaultProfile.linux": "bash"
             },
             "extensions": [
                 "denoland.vscode-deno",
