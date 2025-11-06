@@ -4,6 +4,8 @@ import { AppService } from './app.service';
 import { MqttService } from './mqtt.service';
 import { ConfigModule } from '@nestjs/config';
 import { TemperatureModule } from './temperature/temperature.module';
+import { WebsocketModule } from './websocket/websocket.module';
+import { SupabaseModule } from './auth/supabase.module';
 
 @Module({
   imports: [
@@ -12,6 +14,8 @@ import { TemperatureModule } from './temperature/temperature.module';
       isGlobal: true,
     }),
     TemperatureModule,
+    WebsocketModule,
+    SupabaseModule,
   ],
   controllers: [AppController],
   providers: [AppService, MqttService],
