@@ -13,6 +13,8 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/ws-auth.guard';
 import { SupabaseService } from '../auth/supabase.service';
 import { User } from '@supabase/supabase-js';
+import { DevicesService } from '../devices/devices.service';
+import { TemperatureService } from '../temperature/temperature.service';
 
 interface SocketAuth {
   token?: string;
@@ -20,7 +22,10 @@ interface SocketAuth {
 
 export interface AuthenticatedSocket extends Socket {
   handshake: Socket['handshake'] & { auth: SocketAuth };
-  data: { user?: User };
+  data: {
+    user?: User;
+    subscribedDevices?: Set<string>;
+  };
 }
 
 @WebSocketGateway({
@@ -37,7 +42,11 @@ export class WebsocketGateway
 
   private logger = new Logger('WebsocketGateway');
 
-  constructor(private supabaseService: SupabaseService) {}
+  constructor(
+    private supabaseService: SupabaseService,
+    private devicesService: DevicesService,
+    private temperatureService: TemperatureService,
+  ) {}
 
   afterInit() {
     this.logger.log('WebSocket Gateway initialized');
@@ -66,6 +75,7 @@ export class WebsocketGateway
       }
 
       client.data.user = user;
+      client.data.subscribedDevices = new Set<string>();
       this.logger.log(
         `Client connected: ${client.id} (User: ${user.email || user.id})`,
       );
@@ -143,6 +153,160 @@ export class WebsocketGateway
         timestamp: new Date().toISOString(),
       },
     };
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage('devices:list')
+  async handleListDevices(@ConnectedSocket() client: AuthenticatedSocket) {
+    this.logger.log(
+      `Devices list request from ${client.id} (User: ${client.data.user?.email})`,
+    );
+
+    try {
+      const devices = await this.devicesService.findAllActive();
+
+      const devicesWithTemp = await Promise.all(
+        devices.map(async (device) => {
+          const latestReading = await this.temperatureService.getLatestByDevice(
+            device.id,
+          );
+          return {
+            ...device,
+            currentTemperature: latestReading?.temperatureC || null,
+            lastReading: latestReading?.takenAt || null,
+          };
+        }),
+      );
+
+      return {
+        event: 'devices:list',
+        data: devicesWithTemp,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error fetching devices: ${errorMessage}`);
+      return {
+        event: 'error',
+        data: { message: 'Failed to fetch devices' },
+      };
+    }
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage('devices:subscribe')
+  async handleSubscribeToDevices(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { deviceIds: string[] },
+  ) {
+    this.logger.log(
+      `Device subscription from ${client.id}: ${payload.deviceIds.join(', ')}`,
+    );
+
+    client.data.subscribedDevices = new Set(payload.deviceIds);
+
+    try {
+      const readings = await Promise.all(
+        payload.deviceIds.map(async (deviceId) => {
+          const latest =
+            await this.temperatureService.getLatestByDevice(deviceId);
+          return latest;
+        }),
+      );
+
+      const validReadings = readings.filter((r) => r !== null);
+
+      return {
+        event: 'temperature:initial',
+        data: validReadings,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error fetching initial temperatures: ${errorMessage}`);
+      return {
+        event: 'error',
+        data: { message: 'Failed to fetch initial temperatures' },
+      };
+    }
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage('devices:unsubscribe')
+  handleUnsubscribeFromDevices(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { deviceIds: string[] },
+  ) {
+    this.logger.log(
+      `Device unsubscription from ${client.id}: ${payload.deviceIds.join(', ')}`,
+    );
+
+    payload.deviceIds.forEach((deviceId) => {
+      client.data.subscribedDevices?.delete(deviceId);
+    });
+
+    return {
+      event: 'devices:unsubscribed',
+      data: { deviceIds: payload.deviceIds },
+    };
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage('temperature:history')
+  async handleGetTemperatureHistory(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { deviceId: string; from: string; to: string },
+  ) {
+    this.logger.log(
+      `Temperature history request from ${client.id} for device ${payload.deviceId}`,
+    );
+
+    try {
+      const from = new Date(payload.from);
+      const to = new Date(payload.to);
+
+      const readings = await this.temperatureService.getReadingsInRange(
+        payload.deviceId,
+        from,
+        to,
+      );
+
+      return {
+        event: 'temperature:history',
+        data: {
+          deviceId: payload.deviceId,
+          readings,
+        },
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error fetching temperature history: ${errorMessage}`);
+      return {
+        event: 'error',
+        data: { message: 'Failed to fetch temperature history' },
+      };
+    }
+  }
+
+  broadcastTemperatureUpdate(deviceId: string, temperature: number) {
+    const clients = Array.from(
+      this.server.sockets.sockets.values(),
+    ) as AuthenticatedSocket[];
+
+    clients.forEach((client) => {
+      if (client.data.subscribedDevices?.has(deviceId)) {
+        client.emit('temperature:update', {
+          deviceId,
+          temperatureC: temperature,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    this.logger.debug(
+      `Broadcasted temperature update for device ${deviceId}: ${temperature}°C`,
+    );
   }
 
   private extractToken(client: AuthenticatedSocket): string | null {

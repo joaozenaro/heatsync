@@ -2,6 +2,8 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import * as mqtt from 'mqtt';
 import { TemperatureService } from './temperature/temperature.service';
+import { DevicesService } from './devices/devices.service';
+import { WebsocketGateway } from './websocket/websocket.gateway';
 
 interface TemperatureMessage {
   temperature: number;
@@ -15,6 +17,8 @@ export class MqttService implements OnModuleInit {
   constructor(
     private readonly configService: ConfigService,
     private readonly temperatureService: TemperatureService,
+    private readonly devicesService: DevicesService,
+    private readonly websocketGateway: WebsocketGateway,
   ) {}
 
   onModuleInit(): void {
@@ -29,9 +33,9 @@ export class MqttService implements OnModuleInit {
     });
 
     this.client.on('connect', () => {
-      this.client.subscribe('heatsync/temperature', (err) => {
+      this.client.subscribe('heatsync/telemetry', (err) => {
         if (!err) {
-          console.log('Subscribed to heatsync/temperature');
+          console.log('Subscribed to heatsync/telemetry');
         } else {
           console.error('Failed to subscribe:', err.message);
         }
@@ -43,12 +47,26 @@ export class MqttService implements OnModuleInit {
     });
 
     this.client.on('message', (topic: string, payload: Buffer) => {
-      if (topic === 'heatsync/temperature') {
+      if (topic === 'heatsync/telemetry') {
         const data = JSON.parse(payload.toString()) as TemperatureMessage;
-        void this.temperatureService.saveIfChanged(
-          data.temperature,
-          data.deviceId,
-        );
+
+        void (async () => {
+          try {
+            await this.temperatureService.saveIfChanged(
+              data.temperature,
+              data.deviceId,
+            );
+
+            await this.devicesService.updateLastSeen(data.deviceId);
+
+            this.websocketGateway.broadcastTemperatureUpdate(
+              data.deviceId,
+              data.temperature,
+            );
+          } catch (error) {
+            console.error('Error processing temperature message:', error);
+          }
+        })();
       }
     });
   }
