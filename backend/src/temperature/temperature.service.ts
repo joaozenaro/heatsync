@@ -3,6 +3,13 @@ import { and, desc, eq, gte, isNull, lte, sql } from 'drizzle-orm';
 import { DbClient } from '../db/client';
 import { temperatureReadings, temperatureAggregates } from '../db/schema';
 
+export interface TemperatureReading {
+  id: number;
+  takenAt: Date;
+  temperatureC: number;
+  deviceId: string | null;
+}
+
 @Injectable()
 export class TemperatureService {
   constructor(private readonly dbClient: DbClient) {}
@@ -126,5 +133,90 @@ export class TemperatureService {
 
       await db.insert(temperatureAggregates).values(values);
     }
+  }
+
+  async getLatestReadings(
+    deviceIds?: string[],
+    limit = 100,
+  ): Promise<TemperatureReading[]> {
+    const db = this.dbClient.db;
+
+    const baseQuery = db
+      .select({
+        id: temperatureReadings.id,
+        takenAt: temperatureReadings.takenAt,
+        temperatureC: temperatureReadings.temperatureC,
+        deviceId: temperatureReadings.deviceId,
+      })
+      .from(temperatureReadings);
+
+    let result;
+    if (deviceIds && deviceIds.length > 0) {
+      result = await baseQuery
+        .where(sql`${temperatureReadings.deviceId} = ANY(${deviceIds})`)
+        .orderBy(desc(temperatureReadings.takenAt))
+        .limit(limit);
+    } else {
+      result = await baseQuery
+        .orderBy(desc(temperatureReadings.takenAt))
+        .limit(limit);
+    }
+
+    return result as TemperatureReading[];
+  }
+
+  async getLatestByDevice(
+    deviceId: string,
+  ): Promise<TemperatureReading | null> {
+    const db = this.dbClient.db;
+
+    const result = await db
+      .select({
+        id: temperatureReadings.id,
+        takenAt: temperatureReadings.takenAt,
+        temperatureC: temperatureReadings.temperatureC,
+        deviceId: temperatureReadings.deviceId,
+      })
+      .from(temperatureReadings)
+      .where(eq(temperatureReadings.deviceId, deviceId))
+      .orderBy(desc(temperatureReadings.takenAt))
+      .limit(1);
+
+    return result[0] ? (result[0] as TemperatureReading) : null;
+  }
+
+  async getReadingsInRange(
+    deviceId: string,
+    from: Date,
+    to: Date,
+    limit = 1000,
+  ): Promise<TemperatureReading[]> {
+    const db = this.dbClient.db;
+
+    const result = await db
+      .select({
+        id: temperatureReadings.id,
+        takenAt: temperatureReadings.takenAt,
+        temperatureC: temperatureReadings.temperatureC,
+        deviceId: temperatureReadings.deviceId,
+      })
+      .from(temperatureReadings)
+      .where(
+        and(
+          eq(temperatureReadings.deviceId, deviceId),
+          gte(
+            temperatureReadings.takenAt,
+            sql`${from.toISOString()}::timestamptz`,
+          ),
+          lte(
+            temperatureReadings.takenAt,
+            sql`${to.toISOString()}::timestamptz`,
+          ),
+        ),
+      )
+      .orderBy(desc(temperatureReadings.takenAt))
+      .limit(limit);
+
+    return result as TemperatureReading[];
   }
 }
