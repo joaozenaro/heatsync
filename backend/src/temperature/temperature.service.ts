@@ -7,20 +7,43 @@ export interface TemperatureReading {
   id: number;
   takenAt: Date;
   temperatureC: number;
+  humidity?: number | null;
   deviceId: string | null;
+}
+
+export interface TemperatureAggregate {
+  id: number;
+  bucketStart: Date;
+  granularity: string;
+  medianC: number;
+  deviceId: string | null;
+}
+
+export interface DeviceStats {
+  deviceId: string;
+  avgTemp: number;
+  minTemp: number;
+  maxTemp: number;
+  avgHumidity: number | null;
+  readingCount: number;
 }
 
 @Injectable()
 export class TemperatureService {
   constructor(private readonly dbClient: DbClient) {}
 
-  async saveIfChanged(temperature: number, deviceId: string) {
+  async saveIfChanged(
+    temperature: number,
+    deviceId: string,
+    humidity?: number,
+  ) {
     const db = this.dbClient.db;
 
     const last = await db
       .select({
         id: temperatureReadings.id,
         temperatureC: temperatureReadings.temperatureC,
+        humidity: temperatureReadings.humidity,
       })
       .from(temperatureReadings)
       .where(eq(temperatureReadings.deviceId, deviceId))
@@ -30,16 +53,25 @@ export class TemperatureService {
     const lastValue = last[0]?.temperatureC
       ? Number(last[0].temperatureC)
       : null;
-    if (
-      lastValue !== null &&
-      Number(lastValue.toFixed(2)) === Number(temperature.toFixed(2))
-    ) {
-      return; // unchanged within 0.01°C
+    const lastHumidity = last[0]?.humidity ? Number(last[0].humidity) : null;
+
+    const tempChanged =
+      lastValue === null ||
+      Number(lastValue.toFixed(2)) !== Number(temperature.toFixed(2));
+    const humidityChanged =
+      humidity !== undefined &&
+      (lastHumidity === null ||
+        Number(lastHumidity.toFixed(2)) !== Number(humidity.toFixed(2)));
+
+    if (!tempChanged && !humidityChanged) {
+      return; // unchanged within 0.01 precision
     }
 
-    await db
-      .insert(temperatureReadings)
-      .values({ temperatureC: temperature, deviceId });
+    await db.insert(temperatureReadings).values({
+      temperatureC: temperature,
+      humidity: humidity ?? null,
+      deviceId,
+    });
   }
   async aggregateAndStore(
     granularity: '1m' | '5m' | '1h' | '6h' | '1d',
@@ -146,6 +178,7 @@ export class TemperatureService {
         id: temperatureReadings.id,
         takenAt: temperatureReadings.takenAt,
         temperatureC: temperatureReadings.temperatureC,
+        humidity: temperatureReadings.humidity,
         deviceId: temperatureReadings.deviceId,
       })
       .from(temperatureReadings);
@@ -175,6 +208,7 @@ export class TemperatureService {
         id: temperatureReadings.id,
         takenAt: temperatureReadings.takenAt,
         temperatureC: temperatureReadings.temperatureC,
+        humidity: temperatureReadings.humidity,
         deviceId: temperatureReadings.deviceId,
       })
       .from(temperatureReadings)
@@ -198,6 +232,7 @@ export class TemperatureService {
         id: temperatureReadings.id,
         takenAt: temperatureReadings.takenAt,
         temperatureC: temperatureReadings.temperatureC,
+        humidity: temperatureReadings.humidity,
         deviceId: temperatureReadings.deviceId,
       })
       .from(temperatureReadings)
@@ -218,5 +253,112 @@ export class TemperatureService {
       .limit(limit);
 
     return result as TemperatureReading[];
+  }
+
+  async getAggregates(
+    deviceId: string,
+    granularity: '1m' | '5m' | '1h' | '6h' | '1d',
+    from: Date,
+    to: Date,
+    limit = 1000,
+  ): Promise<TemperatureAggregate[]> {
+    const db = this.dbClient.db;
+
+    const result = await db
+      .select({
+        id: temperatureAggregates.id,
+        bucketStart: temperatureAggregates.bucketStart,
+        granularity: temperatureAggregates.granularity,
+        medianC: temperatureAggregates.medianC,
+        deviceId: temperatureAggregates.deviceId,
+      })
+      .from(temperatureAggregates)
+      .where(
+        and(
+          eq(temperatureAggregates.deviceId, deviceId),
+          eq(temperatureAggregates.granularity, granularity),
+          gte(
+            temperatureAggregates.bucketStart,
+            sql`${from.toISOString()}::timestamptz`,
+          ),
+          lte(
+            temperatureAggregates.bucketStart,
+            sql`${to.toISOString()}::timestamptz`,
+          ),
+        ),
+      )
+      .orderBy(desc(temperatureAggregates.bucketStart))
+      .limit(limit);
+
+    return result as TemperatureAggregate[];
+  }
+
+  async getDeviceStats(
+    deviceId: string,
+    from: Date,
+    to: Date,
+  ): Promise<DeviceStats | null> {
+    const db = this.dbClient.db;
+
+    const result = await db
+      .select({
+        deviceId: temperatureReadings.deviceId,
+        avgTemp: sql<number>`AVG(${temperatureReadings.temperatureC})::float4`,
+        minTemp: sql<number>`MIN(${temperatureReadings.temperatureC})::float4`,
+        maxTemp: sql<number>`MAX(${temperatureReadings.temperatureC})::float4`,
+        avgHumidity: sql<
+          number | null
+        >`AVG(${temperatureReadings.humidity})::float4`,
+        readingCount: sql<number>`COUNT(*)::int`,
+      })
+      .from(temperatureReadings)
+      .where(
+        and(
+          eq(temperatureReadings.deviceId, deviceId),
+          gte(
+            temperatureReadings.takenAt,
+            sql`${from.toISOString()}::timestamptz`,
+          ),
+          lte(
+            temperatureReadings.takenAt,
+            sql`${to.toISOString()}::timestamptz`,
+          ),
+        ),
+      )
+      .groupBy(temperatureReadings.deviceId);
+
+    return result[0] ? (result[0] as DeviceStats) : null;
+  }
+
+  async getAllDevicesStats(from: Date, to: Date): Promise<DeviceStats[]> {
+    const db = this.dbClient.db;
+
+    const result = await db
+      .select({
+        deviceId: temperatureReadings.deviceId,
+        avgTemp: sql<number>`AVG(${temperatureReadings.temperatureC})::float4`,
+        minTemp: sql<number>`MIN(${temperatureReadings.temperatureC})::float4`,
+        maxTemp: sql<number>`MAX(${temperatureReadings.temperatureC})::float4`,
+        avgHumidity: sql<
+          number | null
+        >`AVG(${temperatureReadings.humidity})::float4`,
+        readingCount: sql<number>`COUNT(*)::int`,
+      })
+      .from(temperatureReadings)
+      .where(
+        and(
+          gte(
+            temperatureReadings.takenAt,
+            sql`${from.toISOString()}::timestamptz`,
+          ),
+          lte(
+            temperatureReadings.takenAt,
+            sql`${to.toISOString()}::timestamptz`,
+          ),
+        ),
+      )
+      .groupBy(temperatureReadings.deviceId);
+
+    return result as DeviceStats[];
   }
 }

@@ -7,6 +7,7 @@ import { WebsocketGateway } from './websocket/websocket.gateway';
 
 interface TemperatureMessage {
   temperature: number;
+  humidity?: number;
   deviceId: string;
 }
 
@@ -55,6 +56,7 @@ export class MqttService implements OnModuleInit {
             await this.temperatureService.saveIfChanged(
               data.temperature,
               data.deviceId,
+              data.humidity,
             );
 
             await this.devicesService.updateLastSeen(data.deviceId);
@@ -62,6 +64,7 @@ export class MqttService implements OnModuleInit {
             this.websocketGateway.broadcastTemperatureUpdate(
               data.deviceId,
               data.temperature,
+              data.humidity,
             );
           } catch (error) {
             console.error('Error processing temperature message:', error);

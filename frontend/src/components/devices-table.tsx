@@ -12,7 +12,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Device } from "@/types/device";
-import { Thermometer, MapPin, Clock, Activity } from "lucide-react";
+import { Thermometer, MapPin, Clock, Activity, Droplets } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface DevicesTableProps {
@@ -47,6 +47,11 @@ export function DevicesTable({
   const formatTemperature = (temp: number | null | undefined) => {
     if (temp === null || temp === undefined) return "—";
     return `${temp.toFixed(1)}°C`;
+  };
+
+  const formatHumidity = (humidity: number | null | undefined) => {
+    if (humidity === null || humidity === undefined) return "—";
+    return `${humidity.toFixed(1)}%`;
   };
 
   const formatLastSeen = (date: Date | null | undefined) => {
@@ -122,6 +127,7 @@ export function DevicesTable({
                 <TableHead>Device</TableHead>
                 <TableHead>Location</TableHead>
                 <TableHead>Temperature</TableHead>
+                <TableHead>Humidity</TableHead>
                 <TableHead>Last Seen</TableHead>
                 <TableHead>Status</TableHead>
               </TableRow>
@@ -167,6 +173,14 @@ export function DevicesTable({
                       <Thermometer className="h-4 w-4 text-muted-foreground" />
                       <span className="font-mono">
                         {formatTemperature(device.currentTemperature)}
+                      </span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center gap-1">
+                      <Droplets className="h-4 w-4 text-muted-foreground" />
+                      <span className="font-mono">
+                        {formatHumidity(device.currentHumidity)}
                       </span>
                     </div>
                   </TableCell>

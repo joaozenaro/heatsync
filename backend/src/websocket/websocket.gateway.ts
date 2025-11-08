@@ -13,7 +13,7 @@ import { Logger, UseGuards } from '@nestjs/common';
 import { WsAuthGuard } from '../auth/ws-auth.guard';
 import { SupabaseService } from '../auth/supabase.service';
 import { User } from '@supabase/supabase-js';
-import { DevicesService } from '../devices/devices.service';
+import { DevicesService, Device } from '../devices/devices.service';
 import { TemperatureService } from '../temperature/temperature.service';
 
 interface SocketAuth {
@@ -173,6 +173,7 @@ export class WebsocketGateway
           return {
             ...device,
             currentTemperature: latestReading?.temperatureC || null,
+            currentHumidity: latestReading?.humidity || null,
             lastReading: latestReading?.takenAt || null,
           };
         }),
@@ -289,7 +290,90 @@ export class WebsocketGateway
     }
   }
 
-  broadcastTemperatureUpdate(deviceId: string, temperature: number) {
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage('stats:request')
+  async handleGetStats(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody() payload: { from?: string; to?: string },
+  ) {
+    this.logger.log(
+      `Stats request from ${client.id} (User: ${client.data.user?.email})`,
+    );
+
+    try {
+      const to = payload.to ? new Date(payload.to) : new Date();
+      const from = payload.from
+        ? new Date(payload.from)
+        : new Date(to.getTime() - 24 * 60 * 60 * 1000); // Last 24h by default
+
+      const stats = await this.temperatureService.getAllDevicesStats(from, to);
+
+      return {
+        event: 'stats:data',
+        data: stats,
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error fetching stats: ${errorMessage}`);
+      return {
+        event: 'error',
+        data: { message: 'Failed to fetch statistics' },
+      };
+    }
+  }
+
+  @UseGuards(WsAuthGuard)
+  @SubscribeMessage('aggregates:request')
+  async handleGetAggregates(
+    @ConnectedSocket() client: AuthenticatedSocket,
+    @MessageBody()
+    payload: {
+      deviceId: string;
+      granularity: '1m' | '5m' | '1h' | '6h' | '1d';
+      from: string;
+      to: string;
+    },
+  ) {
+    this.logger.log(
+      `Aggregates request from ${client.id} for device ${payload.deviceId}`,
+    );
+
+    try {
+      const from = new Date(payload.from);
+      const to = new Date(payload.to);
+
+      const aggregates = await this.temperatureService.getAggregates(
+        payload.deviceId,
+        payload.granularity,
+        from,
+        to,
+      );
+
+      return {
+        event: 'aggregates:data',
+        data: {
+          deviceId: payload.deviceId,
+          granularity: payload.granularity,
+          aggregates,
+        },
+      };
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+      this.logger.error(`Error fetching aggregates: ${errorMessage}`);
+      return {
+        event: 'error',
+        data: { message: 'Failed to fetch aggregates' },
+      };
+    }
+  }
+
+  broadcastTemperatureUpdate(
+    deviceId: string,
+    temperature: number,
+    humidity?: number,
+  ) {
     const clients = Array.from(
       this.server.sockets.sockets.values(),
     ) as AuthenticatedSocket[];
@@ -299,13 +383,56 @@ export class WebsocketGateway
         client.emit('temperature:update', {
           deviceId,
           temperatureC: temperature,
+          humidity: humidity ?? null,
           timestamp: new Date().toISOString(),
         });
       }
     });
 
     this.logger.debug(
-      `Broadcasted temperature update for device ${deviceId}: ${temperature}°C`,
+      `Broadcasted temperature update for device ${deviceId}: ${temperature}°C${humidity !== undefined ? `, ${humidity}%` : ''}`,
+    );
+  }
+
+  broadcastDeviceAdded(device: Device) {
+    this.server.emit('device:added', device);
+    this.logger.log(`Broadcasted device:added for ${device.id}`);
+  }
+
+  broadcastDeviceUpdated(device: Device) {
+    this.server.emit('device:updated', device);
+    this.logger.log(`Broadcasted device:updated for ${device.id}`);
+  }
+
+  broadcastDeviceRemoved(deviceId: string) {
+    this.server.emit('device:removed', { deviceId });
+    this.logger.log(`Broadcasted device:removed for ${deviceId}`);
+  }
+
+  broadcastDeviceStatus(deviceId: string, isActive: boolean) {
+    this.server.emit('device:status', { deviceId, isActive });
+    this.logger.log(
+      `Broadcasted device:status for ${deviceId}: ${isActive ? 'active' : 'inactive'}`,
+    );
+  }
+
+  broadcastHumidityUpdate(deviceId: string, humidity: number) {
+    const clients = Array.from(
+      this.server.sockets.sockets.values(),
+    ) as AuthenticatedSocket[];
+
+    clients.forEach((client) => {
+      if (client.data.subscribedDevices?.has(deviceId)) {
+        client.emit('data:humidity', {
+          deviceId,
+          humidity,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    });
+
+    this.logger.debug(
+      `Broadcasted humidity update for device ${deviceId}: ${humidity}%`,
     );
   }
 
