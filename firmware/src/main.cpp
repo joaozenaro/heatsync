@@ -1,8 +1,8 @@
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include <WiFi.h>
 #include <PubSubClient.h>
 #include <DHT.h>
-#include "secrets.development.h"
 #include <FS.h>
 #include <time.h>
 
@@ -10,10 +10,12 @@
 #define DHTPIN 4
 #define DHTTYPE DHT11
 
-#if USE_TLS
+#if ENV_PROD
+#include "secrets.h"
 #include <WiFiClientSecure.h>
 WiFiClientSecure espClient;
 #else
+#include "secrets.development.h"
 WiFiClient espClient;
 #endif
 
@@ -102,7 +104,7 @@ void setup()
     setup_wifi();
     setDateTime();
 
-#if USE_TLS
+#if ENV_PROD
     espClient.setInsecure();
 #endif
 
@@ -122,18 +124,30 @@ void loop()
     if (now - lastMsg > reading_interval_millis)
     {
         lastMsg = now;
+
         float temperature = dht.readTemperature();
-        if (!isnan(temperature))
+        float humidity = dht.readHumidity();
+
+        if (!isnan(temperature) && !isnan(humidity))
         {
-            String deviceId = WiFi.macAddress();
-            String payload = "{\"temperature\":" + String(temperature) + ",\"deviceId\":\"" + deviceId + "\"}";
-            client.publish("heatsync/temperature", payload.c_str());
+            JsonDocument doc;
+
+            doc["deviceId"] = WiFi.macAddress();
+            doc["temperature"] = temperature;
+            doc["humidity"] = humidity;
+            doc["timestamp"] = time(nullptr);
+
+            // Serialize JSON to a string
+            char payload[256];
+            serializeJson(doc, payload);
+
+            client.publish("heatsync/telemetry", payload);
             Serial.print("Published message: ");
             Serial.println(payload);
         }
         else
         {
-            Serial.println("Failed to read temperature");
+            Serial.println("Failed to read from DHT sensor!");
         }
     }
 }
