@@ -23,6 +23,7 @@ CREATE TABLE "temperature_readings" (
 	"id" serial PRIMARY KEY NOT NULL,
 	"taken_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"temperature_c" real NOT NULL,
+	"humidity" real,
 	"device_id" varchar(128)
 );
 --> statement-breakpoint

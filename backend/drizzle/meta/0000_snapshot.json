@@ -1,5 +1,5 @@
 {
-  "id": "bc7df8ac-f8ae-444a-b32e-481ea89b151c",
+  "id": "cf8513cc-c353-4f48-b3c9-de75001e64a6",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -198,6 +198,12 @@
           "type": "real",
           "primaryKey": false,
           "notNull": true
+        },
+        "humidity": {
+          "name": "humidity",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": false
         },
         "device_id": {
           "name": "device_id",
