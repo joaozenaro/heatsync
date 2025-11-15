@@ -28,16 +28,16 @@ export class DevicesController {
     const locationIdNum = locationId ? parseInt(locationId, 10) : undefined;
 
     if (active === 'true') {
-      return this.devicesService.findAllActive(userId);
+      return this.devicesService.findAllActive();
     }
 
-    return this.devicesService.findAll(userId, locationIdNum);
+    const result = await this.devicesService.findAll(userId, locationIdNum);
+    return result;
   }
 
   @Get(':id')
-  async findOne(@Param('id') id: string, @Request() req: AuthenticatedRequest) {
-    const userId = req.user!.id;
-    const device = await this.devicesService.findById(id, userId);
+  async findOne(@Param('id') id: string) {
+    const device = await this.devicesService.findById(id);
 
     if (!device) {
       return null;
@@ -47,12 +47,7 @@ export class DevicesController {
   }
 
   @Put(':id')
-  async update(
-    @Param('id') id: string,
-    @Body() updateDto: UpdateDeviceDto,
-    @Request() req: AuthenticatedRequest,
-  ) {
-    const userId = req.user!.id;
-    return this.devicesService.update(id, updateDto, userId);
+  async update(@Param('id') id: string, @Body() updateDto: UpdateDeviceDto) {
+    return this.devicesService.update(id, updateDto);
   }
 }

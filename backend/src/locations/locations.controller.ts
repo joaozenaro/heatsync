@@ -34,6 +34,12 @@ export class LocationsController {
     return this.locationsService.getTree(userId);
   }
 
+  @Get(':id/device-count')
+  async getDeviceCount(@Param('id', ParseIntPipe) id: number) {
+    const count = await this.locationsService.getDeviceCount(id);
+    return { count };
+  }
+
   @Get(':id')
   async findOne(
     @Param('id', ParseIntPipe) id: number,

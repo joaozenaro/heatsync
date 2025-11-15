@@ -167,13 +167,35 @@ export function DevicesTable({
                     </div>
                   </TableCell>
                   <TableCell>
-                    {device.locationId ? (
-                      <div className="flex items-center gap-1 text-sm">
-                        <MapPin className="h-3 w-3 text-muted-foreground" />
-                        {device.locationId}
+                    {device.location ? (
+                      <div className="flex flex-col gap-0.5">
+                        <div className="flex items-center gap-1.5 text-sm">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                          <span className="font-medium">
+                            {device.location.name}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-1.5 text-xs text-muted-foreground ml-5">
+                          <span className="capitalize">
+                            {device.location.type}
+                          </span>
+                          {device.location.description && (
+                            <>
+                              <span>•</span>
+                              <span className="truncate max-w-[200px]">
+                                {device.location.description}
+                              </span>
+                            </>
+                          )}
+                        </div>
+                      </div>
+                    ) : device.locationId ? (
+                      <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                        <MapPin className="h-3 w-3" />
+                        <span>Location #{device.locationId}</span>
                       </div>
                     ) : (
-                      <span className="text-muted-foreground">—</span>
+                      <span className="text-muted-foreground">Unassigned</span>
                     )}
                   </TableCell>
                   <TableCell>

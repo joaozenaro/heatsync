@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
-import { eq, and, isNull } from 'drizzle-orm';
+import { eq, and, isNull, sql } from 'drizzle-orm';
 import { DbClient } from '../db/client';
-import { locations } from '../db/schema';
+import { locations, devices } from '../db/schema';
 
 export interface Location {
   id: number;
@@ -176,9 +176,29 @@ export class LocationsService {
       throw new Error('Cannot delete location with children');
     }
 
+    // Unassign all devices from this location before deleting
+    await db
+      .update(devices)
+      .set({
+        locationId: null,
+        updatedAt: new Date(),
+      })
+      .where(eq(devices.locationId, locationId));
+
     await db
       .delete(locations)
       .where(and(eq(locations.id, locationId), eq(locations.ownerId, userId)));
+  }
+
+  async getDeviceCount(locationId: number): Promise<number> {
+    const db = this.dbClient.db;
+
+    const result = await db
+      .select({ count: sql<number>`COUNT(*)::int` })
+      .from(devices)
+      .where(eq(devices.locationId, locationId));
+
+    return result[0]?.count || 0;
   }
 
   private async wouldCreateCircularReference(

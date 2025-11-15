@@ -7,9 +7,6 @@ import { and, eq, inArray, sql } from 'drizzle-orm';
 export class LocationDevicesService {
   constructor(private readonly dbClient: DbClient) {}
 
-  /**
-   * Get all devices in a location and its sub-locations
-   */
   async getDevicesInLocation(
     locationId: number,
     userId: string,
@@ -24,19 +21,11 @@ export class LocationDevicesService {
         locationId: devices.locationId,
       })
       .from(devices)
-      .where(
-        and(
-          inArray(devices.locationId, locationIds),
-          eq(devices.ownerId, userId),
-        ),
-      );
+      .where(inArray(devices.locationId, locationIds));
 
     return result;
   }
 
-  /**
-   * Move multiple devices to a new location
-   */
   async moveDevices(
     deviceIds: string[],
     targetLocationId: number | null,
@@ -44,19 +33,15 @@ export class LocationDevicesService {
   ): Promise<void> {
     const db = this.dbClient.db;
 
-    // Verify all devices exist and belong to the user
     const existingDevices = await db
       .select({ id: devices.id })
       .from(devices)
-      .where(and(inArray(devices.id, deviceIds), eq(devices.ownerId, userId)));
+      .where(inArray(devices.id, deviceIds));
 
     if (existingDevices.length !== deviceIds.length) {
-      throw new NotFoundException(
-        'One or more devices not found or access denied',
-      );
+      throw new NotFoundException('One or more devices not found');
     }
 
-    // Verify the target location exists and belongs to the user if provided
     if (targetLocationId !== null) {
       const location = await db
         .select({ id: locations.id })
@@ -76,7 +61,6 @@ export class LocationDevicesService {
       }
     }
 
-    // Update all devices
     await db
       .update(devices)
       .set({
@@ -86,9 +70,6 @@ export class LocationDevicesService {
       .where(inArray(devices.id, deviceIds));
   }
 
-  /**
-   * Get all descendant location IDs for a given location
-   */
   private async getDescendantLocationIds(
     locationId: number,
     userId: string,

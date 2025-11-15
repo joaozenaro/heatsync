@@ -12,6 +12,12 @@ export interface Device {
   currentTemperature?: number | null;
   currentHumidity?: number | null;
   lastReading?: Date | null;
+  location?: {
+    id: number;
+    name: string;
+    type: string;
+    description: string | null;
+  } | null;
 }
 
 export interface Location {

@@ -1,5 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
-import { eq, desc, and, isNull, inArray, sql } from 'drizzle-orm';
+import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 import { DbClient } from '../db/client';
 import { devices } from '../db/schema';
 
@@ -42,12 +42,6 @@ export class DevicesService {
 
     const conditions = [];
 
-    if (userId) {
-      conditions.push(eq(devices.ownerId, userId));
-    } else {
-      conditions.push(isNull(devices.ownerId));
-    }
-
     if (locationId) {
       const locationIds = await this.getDescendantLocationIds(
         locationId,
@@ -57,7 +51,11 @@ export class DevicesService {
     }
 
     const whereClause =
-      conditions.length > 1 ? and(...conditions) : conditions[0] || undefined;
+      conditions.length > 0
+        ? conditions.length > 1
+          ? and(...conditions)
+          : conditions[0]
+        : undefined;
 
     const result = await db
       .select()
@@ -68,35 +66,25 @@ export class DevicesService {
     return result as Device[];
   }
 
-  async findAllActive(userId?: string): Promise<Device[]> {
+  async findAllActive(): Promise<Device[]> {
     const db = this.dbClient.db;
-
-    const whereClause = userId
-      ? and(eq(devices.ownerId, userId), eq(devices.isActive, true))
-      : eq(devices.isActive, true);
 
     const result = await db
       .select()
       .from(devices)
-      .where(whereClause)
+      .where(eq(devices.isActive, true))
       .orderBy(desc(devices.lastSeenAt));
 
     return result as Device[];
   }
 
-  async findById(deviceId: string, userId?: string): Promise<Device | null> {
+  async findById(deviceId: string): Promise<Device | null> {
     const db = this.dbClient.db;
-
-    const conditions = [eq(devices.id, deviceId)];
-
-    if (userId) {
-      conditions.push(eq(devices.ownerId, userId));
-    }
 
     const result = await db
       .select()
       .from(devices)
-      .where(and(...conditions))
+      .where(eq(devices.id, deviceId))
       .limit(1);
 
     return result[0] ? (result[0] as Device) : null;
@@ -120,18 +108,8 @@ export class DevicesService {
     return result[0] as Device;
   }
 
-  async update(
-    deviceId: string,
-    dto: UpdateDeviceDto,
-    userId?: string,
-  ): Promise<Device> {
+  async update(deviceId: string, dto: UpdateDeviceDto): Promise<Device> {
     const db = this.dbClient.db;
-
-    const conditions = [eq(devices.id, deviceId)];
-
-    if (userId) {
-      conditions.push(eq(devices.ownerId, userId));
-    }
 
     const result = await db
       .update(devices)
@@ -139,11 +117,11 @@ export class DevicesService {
         ...dto,
         updatedAt: new Date(),
       })
-      .where(and(...conditions))
+      .where(eq(devices.id, deviceId))
       .returning();
 
     if (!result[0]) {
-      throw new NotFoundException('Device not found or access denied');
+      throw new NotFoundException('Device not found');
     }
 
     return result[0] as Device;
@@ -171,22 +149,16 @@ export class DevicesService {
     }
   }
 
-  async delete(deviceId: string, userId?: string): Promise<void> {
+  async delete(deviceId: string): Promise<void> {
     const db = this.dbClient.db;
-
-    const conditions = [eq(devices.id, deviceId)];
-
-    if (userId) {
-      conditions.push(eq(devices.ownerId, userId));
-    }
 
     const result = await db
       .delete(devices)
-      .where(and(...conditions))
+      .where(eq(devices.id, deviceId))
       .returning({ id: devices.id });
 
     if (result.length === 0) {
-      throw new NotFoundException('Device not found or access denied');
+      throw new NotFoundException('Device not found');
     }
   }
 
