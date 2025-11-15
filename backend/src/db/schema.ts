@@ -8,7 +8,30 @@ import {
   text,
   boolean,
   uuid,
+  integer,
 } from 'drizzle-orm/pg-core';
+
+export const locations = pgTable(
+  'locations',
+  {
+    id: serial('id').primaryKey(),
+    name: varchar('name', { length: 255 }).notNull(),
+    type: varchar('type', { length: 100 }).notNull(), // e.g., 'building', 'sector', 'floor', 'room'
+    description: text('description'),
+    parentId: integer('parent_id'),
+    ownerId: uuid('owner_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [
+    index('locations_parent_idx').on(table.parentId),
+    index('locations_owner_idx').on(table.ownerId),
+  ],
+);
 
 export const devices = pgTable(
   'devices',
@@ -16,7 +39,7 @@ export const devices = pgTable(
     id: varchar('id', { length: 128 }).primaryKey(),
     name: varchar('name', { length: 255 }).notNull(),
     description: text('description'),
-    location: varchar('location', { length: 255 }),
+    locationId: integer('location_id'),
     isActive: boolean('is_active').notNull().default(true),
     lastSeenAt: timestamp('last_seen_at', { withTimezone: true }),
     createdAt: timestamp('created_at', { withTimezone: true })
@@ -31,6 +54,7 @@ export const devices = pgTable(
   (table) => [
     index('devices_owner_idx').on(table.ownerId),
     index('devices_group_idx').on(table.groupId),
+    index('devices_location_idx').on(table.locationId),
   ],
 );
 

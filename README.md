@@ -5,7 +5,7 @@ This project is a full-stack IoT dashboard application designed to monitor humid
 ## Features
 
 - [x] Real-time dashboard with Socket.IO
-- [ ] Hierarchical device filtering: $Building \rightarrow Sector \rightarrow Floor \rightarrow Room \rightarrow Device$
+- [x] Hierarchical device filtering: $Building \rightarrow Sector \rightarrow Floor \rightarrow Room \rightarrow Device$
 - [ ] Alert system for temperature/humidity threshold violations
 - [ ] Data export for selected date ranges
 - [x] Authentication via Supabase Auth
