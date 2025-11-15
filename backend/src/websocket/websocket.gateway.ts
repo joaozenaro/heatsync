@@ -31,7 +31,7 @@ export interface AuthenticatedSocket extends Socket {
 
 @WebSocketGateway({
   cors: {
-    origin: ['http://localhost:3001', 'http://127.0.0.1:3001'],
+    origin: [process.env.PUBLIC_FRONTEND_URL ?? 'http://localhost:3001'],
     credentials: true,
   },
 })
