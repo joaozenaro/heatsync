@@ -14,7 +14,10 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "HeatSync",
+  title: {
+    template: "HeatSync | %s",
+    default: "HeatSync",
+  },
   description: "IoT temperature and humidity monitor",
 };
 

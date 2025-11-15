@@ -2,7 +2,7 @@ export interface Device {
   id: string;
   name: string;
   description: string | null;
-  location: string | null;
+  locationId: number | null;
   isActive: boolean;
   lastSeenAt: Date | null;
   createdAt: Date;
@@ -12,6 +12,27 @@ export interface Device {
   currentTemperature?: number | null;
   currentHumidity?: number | null;
   lastReading?: Date | null;
+  location?: {
+    id: number;
+    name: string;
+    type: string;
+    description: string | null;
+  } | null;
+}
+
+export interface Location {
+  id: number;
+  name: string;
+  type: string;
+  description: string | null;
+  parentId: number | null;
+  ownerId: string;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LocationTreeNode extends Location {
+  children: LocationTreeNode[];
 }
 
 export interface TemperatureReading {

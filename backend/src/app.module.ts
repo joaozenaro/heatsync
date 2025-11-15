@@ -7,6 +7,7 @@ import { TemperatureModule } from './temperature/temperature.module';
 import { WebsocketModule } from './websocket/websocket.module';
 import { SupabaseModule } from './auth/supabase.module';
 import { DevicesModule } from './devices/devices.module';
+import { LocationsModule } from './locations/locations.module';
 
 @Module({
   imports: [
@@ -18,6 +19,7 @@ import { DevicesModule } from './devices/devices.module';
     WebsocketModule,
     SupabaseModule,
     DevicesModule,
+    LocationsModule,
   ],
   controllers: [AppController],
   providers: [AppService, MqttService],

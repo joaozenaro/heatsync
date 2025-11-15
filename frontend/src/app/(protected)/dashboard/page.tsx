@@ -1,35 +1,43 @@
 "use client";
 
 import { useState, useEffect, useCallback, useRef } from "react";
-import { AppSidebar } from "@/components/app-sidebar";
-import { SiteHeader } from "@/components/site-header";
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
 import { DevicesTable } from "@/components/devices-table";
 import { TemperatureChart } from "@/components/temperature-chart";
 import { useDeviceSocket } from "@/hooks/useDeviceSocket";
-import { TemperatureReading, TemperatureUpdate, HumidityUpdate, TemperatureAggregate } from "@/types/device";
+import {
+  TemperatureReading,
+  TemperatureUpdate,
+  HumidityUpdate,
+  TemperatureAggregate,
+} from "@/types/device";
+import { SectionCards } from "@/components/section-cards";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { AlertCircle, WifiOff } from "lucide-react";
 
-type TimeRange = 'live' | '15m' | '1h' | '6h' | '24h' | '7d';
+type TimeRange = "live" | "15m" | "1h" | "6h" | "24h" | "7d";
 
 interface TimeRangeConfig {
   label: string;
-  granularity: '1m' | '5m' | '1h' | '6h' | '1d' | null;
+  granularity: "1m" | "5m" | "1h" | "6h" | "1d" | null;
   duration: number | null;
 }
 
 const TIME_RANGES: Record<TimeRange, TimeRangeConfig> = {
-  live: { label: 'Live', granularity: null, duration: null },
-  '15m': { label: '15 Min', granularity: '1m', duration: 15 * 60 * 1000 },
-  '1h': { label: '1 Hour', granularity: '5m', duration: 60 * 60 * 1000 },
-  '6h': { label: '6 Hours', granularity: '1h', duration: 6 * 60 * 60 * 1000 },
-  '24h': { label: '24 Hours', granularity: '6h', duration: 24 * 60 * 60 * 1000 },
-  '7d': { label: '7 Days', granularity: '1d', duration: 7 * 24 * 60 * 60 * 1000 },
+  live: { label: "Live", granularity: null, duration: null },
+  "15m": { label: "15 Min", granularity: "1m", duration: 15 * 60 * 1000 },
+  "1h": { label: "1 Hour", granularity: "5m", duration: 60 * 60 * 1000 },
+  "6h": { label: "6 Hours", granularity: "1h", duration: 6 * 60 * 60 * 1000 },
+  "24h": {
+    label: "24 Hours",
+    granularity: "6h",
+    duration: 24 * 60 * 60 * 1000,
+  },
+  "7d": {
+    label: "7 Days",
+    granularity: "1d",
+    duration: 7 * 24 * 60 * 60 * 1000,
+  },
 };
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { AlertCircle, Wifi, WifiOff } from "lucide-react";
-import { createClient } from "@/lib/supabase/client";
-import { SectionCards } from "@/components/section-cards";
-import { Badge } from "@/components/ui/badge";
 
 export default function DashboardPage() {
   const [selectedDeviceIds, setSelectedDeviceIds] = useState<string[]>([]);
@@ -40,11 +48,6 @@ export default function DashboardPage() {
     Map<string, { name: string; aggregates: TemperatureAggregate[] }>
   >(new Map());
   const [isLoadingAggregates, setIsLoadingAggregates] = useState(false);
-  const [user, setUser] = useState<{
-    name: string;
-    email: string;
-    avatar: string;
-  } | null>(null);
   const hasAutoSelected = useRef(false);
 
   const {
@@ -60,33 +63,23 @@ export default function DashboardPage() {
     onAggregatesData,
   } = useDeviceSocket();
 
-  const supabase = createClient();
-
-  useEffect(() => {
-    const getUser = async () => {
-      const { data: userData } = await supabase.auth.getUser();
-      setUser({
-        name: userData?.user?.user_metadata?.name || userData?.user?.email,
-        email: userData?.user?.email || "",
-        avatar: userData?.user?.user_metadata?.avatar_url || "",
-      });
-    };
-    getUser();
-  }, [supabase.auth]);
-
   // Auto-select up to 3 devices when devices are first loaded
   useEffect(() => {
     if (devices.length > 0 && !hasAutoSelected.current && !isLoading) {
       const MAX_AUTO_SELECT = 3;
       const activeDevices = devices.filter((d) => d.isActive);
-      const devicesToSelect = activeDevices.length > 0 ? activeDevices : devices;
+      const devicesToSelect =
+        activeDevices.length > 0 ? activeDevices : devices;
       const autoSelected = devicesToSelect.slice(0, MAX_AUTO_SELECT);
 
       if (autoSelected.length > 0) {
         hasAutoSelected.current = true;
 
         // Initialize deviceReadings for auto-selected devices
-        const initialReadings = new Map<string, { name: string; readings: TemperatureReading[] }>();
+        const initialReadings = new Map<
+          string,
+          { name: string; readings: TemperatureReading[] }
+        >();
         autoSelected.forEach((device) => {
           initialReadings.set(device.id, {
             name: device.name,
@@ -203,7 +196,7 @@ export default function DashboardPage() {
   // Handle time range changes
   const handleTimeRangeChange = useCallback(
     (range: TimeRange) => {
-      if (range === 'live') {
+      if (range === "live") {
         // Clear aggregate data when switching to live mode
         setAggregateData(new Map());
         setIsLoadingAggregates(false);
@@ -267,57 +260,46 @@ export default function DashboardPage() {
   );
 
   return (
-    <SidebarProvider
-      style={
-        {
-          "--sidebar-width": "calc(var(--spacing) * 72)",
-          "--header-height": "calc(var(--spacing) * 12)",
-        } as React.CSSProperties
-      }
-    >
-      {user && <AppSidebar variant="inset" user={user} />}
-      <SidebarInset>
-        <SiteHeader title="Dashboard" />
-        <div className="flex flex-1 flex-col">
-          <div className="@container/main flex flex-1 flex-col gap-2">
-            <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-              <SectionCards devices={devices} stats={stats} />
-              <div className="px-4 lg:px-6">
-                {error && (
-                  <Alert variant="destructive" className="mb-4">
-                    <AlertCircle className="h-4 w-4" />
-                    <AlertTitle>Connection Error</AlertTitle>
-                    <AlertDescription>
-                      {error}
-                      <div className="mt-2 flex items-center gap-2">
-                        <WifiOff className="h-4 w-4" />
-                        <span className="text-sm">Attempting to reconnect automatically...</span>
-                      </div>
-                    </AlertDescription>
-                  </Alert>
-                )}
+    <div className="flex flex-1 flex-col">
+      <div className="@container/main flex flex-1 flex-col gap-2">
+        <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
+          <SectionCards devices={devices} stats={stats} />
+          <div className="px-4 lg:px-6">
+            {error && (
+              <Alert variant="destructive" className="mb-4">
+                <AlertCircle className="h-4 w-4" />
+                <AlertTitle>Connection Error</AlertTitle>
+                <AlertDescription>
+                  {error}
+                  <div className="mt-2 flex items-center gap-2">
+                    <WifiOff className="h-4 w-4" />
+                    <span className="text-sm">
+                      Attempting to reconnect automatically...
+                    </span>
+                  </div>
+                </AlertDescription>
+              </Alert>
+            )}
 
-                <div className="grid gap-4 md:gap-6">
-                  <TemperatureChart
-                    deviceData={deviceReadings}
-                    aggregateData={aggregateData}
-                    selectedDeviceIds={selectedDeviceIds}
-                    onTimeRangeChange={handleTimeRangeChange}
-                    isLoadingAggregates={isLoadingAggregates}
-                  />
+            <div className="grid gap-4 md:gap-6">
+              <TemperatureChart
+                deviceData={deviceReadings}
+                aggregateData={aggregateData}
+                selectedDeviceIds={selectedDeviceIds}
+                onTimeRangeChange={handleTimeRangeChange}
+                isLoadingAggregates={isLoadingAggregates}
+              />
 
-                  <DevicesTable
-                    devices={devices}
-                    selectedDeviceIds={selectedDeviceIds}
-                    onSelectionChange={handleSelectionChange}
-                    isLoading={isLoading}
-                  />
-                </div>
-              </div>
+              <DevicesTable
+                devices={devices}
+                selectedDeviceIds={selectedDeviceIds}
+                onSelectionChange={handleSelectionChange}
+                isLoading={isLoading}
+              />
             </div>
           </div>
         </div>
-      </SidebarInset>
-    </SidebarProvider>
+      </div>
+    </div>
   );
 }

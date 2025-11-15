@@ -1,34 +1,63 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer, Legend } from "recharts";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from "@/components/ui/chart";
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+  Legend,
+} from "recharts";
 import { TemperatureReading, TemperatureAggregate } from "@/types/device";
 import { format } from "date-fns";
 import { Thermometer, Droplets } from "lucide-react";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-type TimeRange = 'live' | '15m' | '1h' | '6h' | '24h' | '7d';
+type TimeRange = "live" | "15m" | "1h" | "6h" | "24h" | "7d";
 
 interface TimeRangeConfig {
   label: string;
-  granularity: '1m' | '5m' | '1h' | '6h' | '1d' | null;
+  granularity: "1m" | "5m" | "1h" | "6h" | "1d" | null;
   duration: number | null;
 }
 
 const TIME_RANGES: Record<TimeRange, TimeRangeConfig> = {
-  live: { label: 'Live', granularity: null, duration: null },
-  '15m': { label: '15 Min', granularity: '1m', duration: 15 * 60 * 1000 },
-  '1h': { label: '1 Hour', granularity: '5m', duration: 60 * 60 * 1000 },
-  '6h': { label: '6 Hours', granularity: '1h', duration: 6 * 60 * 60 * 1000 },
-  '24h': { label: '24 Hours', granularity: '6h', duration: 24 * 60 * 60 * 1000 },
-  '7d': { label: '7 Days', granularity: '1d', duration: 7 * 24 * 60 * 60 * 1000 },
+  live: { label: "Live", granularity: null, duration: null },
+  "15m": { label: "15 Min", granularity: "1m", duration: 15 * 60 * 1000 },
+  "1h": { label: "1 Hour", granularity: "5m", duration: 60 * 60 * 1000 },
+  "6h": { label: "6 Hours", granularity: "1h", duration: 6 * 60 * 60 * 1000 },
+  "24h": {
+    label: "24 Hours",
+    granularity: "6h",
+    duration: 24 * 60 * 60 * 1000,
+  },
+  "7d": {
+    label: "7 Days",
+    granularity: "1d",
+    duration: 7 * 24 * 60 * 60 * 1000,
+  },
 };
 
 interface TemperatureChartProps {
   deviceData: Map<string, { name: string; readings: TemperatureReading[] }>;
-  aggregateData: Map<string, { name: string; aggregates: TemperatureAggregate[] }>;
+  aggregateData: Map<
+    string,
+    { name: string; aggregates: TemperatureAggregate[] }
+  >;
   selectedDeviceIds: string[];
   onTimeRangeChange: (range: TimeRange) => void;
   isLoadingAggregates?: boolean;
@@ -53,15 +82,17 @@ export function TemperatureChart({
   onTimeRangeChange,
   isLoadingAggregates = false,
 }: TemperatureChartProps) {
-  const [viewMode, setViewMode] = useState<"temperature" | "humidity">("temperature");
-  const [timeRange, setTimeRange] = useState<TimeRange>('live');
+  const [viewMode, setViewMode] = useState<"temperature" | "humidity">(
+    "temperature"
+  );
+  const [timeRange, setTimeRange] = useState<TimeRange>("live");
 
   const handleTimeRangeChange = (range: TimeRange) => {
     setTimeRange(range);
     onTimeRangeChange(range);
   };
 
-  const isLiveMode = timeRange === 'live';
+  const isLiveMode = timeRange === "live";
 
   const chartData = useMemo(() => {
     if (selectedDeviceIds.length === 0) return [];
@@ -120,7 +151,8 @@ export function TemperatureChart({
 
       const sortedTimestamps = Array.from(allTimestamps).sort((a, b) => a - b);
 
-      const timeFormat = timeRange === '7d' ? 'MMM dd' : timeRange === '24h' ? 'HH:mm' : 'HH:mm';
+      const timeFormat =
+        timeRange === "7d" ? "MMM dd" : timeRange === "24h" ? "HH:mm" : "HH:mm";
 
       return sortedTimestamps.map((timestamp) => {
         const dataPoint: Record<string, number | string> = {
@@ -178,14 +210,24 @@ export function TemperatureChart({
               <CardTitle>Temperature Monitor</CardTitle>
               <CardDescription>
                 {selectedDeviceIds.length === 0
-                  ? 'Select devices to view their temperature trends'
-                  : `${isLiveMode ? 'Real-time' : TIME_RANGES[timeRange].label} readings for ${selectedDeviceIds.length} device${selectedDeviceIds.length > 1 ? "s" : ""}`
-                }
-                {isLoadingAggregates && <span className="ml-2 text-xs">(Loading...)</span>}
+                  ? "Select devices to view their temperature trends"
+                  : `${
+                      isLiveMode ? "Real-time" : TIME_RANGES[timeRange].label
+                    } readings for ${selectedDeviceIds.length} device${
+                      selectedDeviceIds.length > 1 ? "s" : ""
+                    }`}
+                {isLoadingAggregates && (
+                  <span className="ml-2 text-xs">(Loading...)</span>
+                )}
               </CardDescription>
             </div>
             {hasHumidityData && isLiveMode && selectedDeviceIds.length > 0 && (
-              <Tabs value={viewMode} onValueChange={(v) => setViewMode(v as "temperature" | "humidity")}>
+              <Tabs
+                value={viewMode}
+                onValueChange={(v) =>
+                  setViewMode(v as "temperature" | "humidity")
+                }
+              >
                 <TabsList>
                   <TabsTrigger value="temperature" className="gap-1">
                     <Thermometer className="h-4 w-4" />
@@ -205,10 +247,15 @@ export function TemperatureChart({
                 key={range}
                 onClick={() => handleTimeRangeChange(range)}
                 disabled={selectedDeviceIds.length === 0}
-                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${timeRange === range
-                  ? 'bg-primary text-primary-foreground'
-                  : 'bg-muted hover:bg-muted/80'
-                  } ${selectedDeviceIds.length === 0 ? 'opacity-50 cursor-not-allowed' : ''}`}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  timeRange === range
+                    ? "bg-primary text-primary-foreground"
+                    : "bg-muted hover:bg-muted/80"
+                } ${
+                  selectedDeviceIds.length === 0
+                    ? "opacity-50 cursor-not-allowed"
+                    : ""
+                }`}
               >
                 {TIME_RANGES[range].label}
               </button>
@@ -221,20 +268,27 @@ export function TemperatureChart({
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Thermometer className="h-16 w-16 mb-4 opacity-50" />
             <p className="text-lg font-medium">No devices selected</p>
-            <p className="text-sm">Select one or more devices from the table below</p>
+            <p className="text-sm">
+              Select one or more devices from the table below
+            </p>
           </div>
         ) : chartData.length === 0 && !isLoadingAggregates ? (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <Thermometer className="h-16 w-16 mb-4 opacity-50" />
             <p className="text-lg font-medium">No data available</p>
             <p className="text-sm">
-              {isLiveMode ? 'Waiting for temperature readings...' : 'No historical data for this time range'}
+              {isLiveMode
+                ? "Waiting for temperature readings..."
+                : "No historical data for this time range"}
             </p>
           </div>
         ) : (
           <ChartContainer config={chartConfig} className="h-[400px] w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
+              <LineChart
+                data={chartData}
+                margin={{ top: 5, right: 30, left: 20, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
                 <XAxis
                   dataKey="time"
@@ -242,11 +296,14 @@ export function TemperatureChart({
                   tick={{ fill: "hsl(var(--muted-foreground))" }}
                 />
                 <YAxis
-                  domain={['auto', 'auto']}
+                  domain={["auto", "auto"]}
                   label={{
-                    value: viewMode === "temperature" ? "Temperature (°C)" : "Humidity (%)",
+                    value:
+                      viewMode === "temperature"
+                        ? "Temperature (°C)"
+                        : "Humidity (%)",
                     angle: -90,
-                    position: "insideLeft"
+                    position: "insideLeft",
                   }}
                   className="text-xs"
                   tick={{ fill: "hsl(var(--muted-foreground))" }}
@@ -257,7 +314,11 @@ export function TemperatureChart({
                   <Line
                     key={deviceId}
                     type="monotone"
-                    dataKey={viewMode === "temperature" ? `${deviceId}_temp` : `${deviceId}_humidity`}
+                    dataKey={
+                      viewMode === "temperature"
+                        ? `${deviceId}_temp`
+                        : `${deviceId}_humidity`
+                    }
                     stroke={DEVICE_COLORS[index % DEVICE_COLORS.length]}
                     strokeWidth={2}
                     dot={{ r: 3 }}

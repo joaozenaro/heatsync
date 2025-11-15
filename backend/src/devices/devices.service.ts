@@ -1,5 +1,5 @@
-import { Injectable } from '@nestjs/common';
-import { eq, desc, and, isNull } from 'drizzle-orm';
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { eq, desc, and, inArray, sql } from 'drizzle-orm';
 import { DbClient } from '../db/client';
 import { devices } from '../db/schema';
 
@@ -7,7 +7,7 @@ export interface Device {
   id: string;
   name: string;
   description: string | null;
-  location: string | null;
+  locationId: number | null;
   isActive: boolean;
   lastSeenAt: Date | null;
   createdAt: Date;
@@ -20,7 +20,7 @@ export interface CreateDeviceDto {
   id: string;
   name: string;
   description?: string;
-  location?: string;
+  locationId?: number;
   ownerId?: string;
   groupId?: string;
 }
@@ -28,7 +28,7 @@ export interface CreateDeviceDto {
 export interface UpdateDeviceDto {
   name?: string;
   description?: string;
-  location?: string;
+  locationId?: number;
   isActive?: boolean;
   groupId?: string;
 }
@@ -37,13 +37,25 @@ export interface UpdateDeviceDto {
 export class DevicesService {
   constructor(private readonly dbClient: DbClient) {}
 
-  async findAll(userId?: string): Promise<Device[]> {
+  async findAll(userId?: string, locationId?: number): Promise<Device[]> {
     const db = this.dbClient.db;
 
-    // If userId is provided, filter by owner
-    const whereClause = userId
-      ? eq(devices.ownerId, userId)
-      : isNull(devices.ownerId);
+    const conditions = [];
+
+    if (locationId) {
+      const locationIds = await this.getDescendantLocationIds(
+        locationId,
+        userId,
+      );
+      conditions.push(inArray(devices.locationId, locationIds));
+    }
+
+    const whereClause =
+      conditions.length > 0
+        ? conditions.length > 1
+          ? and(...conditions)
+          : conditions[0]
+        : undefined;
 
     const result = await db
       .select()
@@ -54,17 +66,13 @@ export class DevicesService {
     return result as Device[];
   }
 
-  async findAllActive(userId?: string): Promise<Device[]> {
+  async findAllActive(): Promise<Device[]> {
     const db = this.dbClient.db;
-
-    const whereClause = userId
-      ? and(eq(devices.ownerId, userId), eq(devices.isActive, true))
-      : eq(devices.isActive, true);
 
     const result = await db
       .select()
       .from(devices)
-      .where(whereClause)
+      .where(eq(devices.isActive, true))
       .orderBy(desc(devices.lastSeenAt));
 
     return result as Device[];
@@ -91,7 +99,7 @@ export class DevicesService {
         id: dto.id,
         name: dto.name,
         description: dto.description || null,
-        location: dto.location || null,
+        locationId: dto.locationId || null,
         ownerId: dto.ownerId || null,
         groupId: dto.groupId || null,
       })
@@ -111,6 +119,10 @@ export class DevicesService {
       })
       .where(eq(devices.id, deviceId))
       .returning();
+
+    if (!result[0]) {
+      throw new NotFoundException('Device not found');
+    }
 
     return result[0] as Device;
   }
@@ -140,7 +152,14 @@ export class DevicesService {
   async delete(deviceId: string): Promise<void> {
     const db = this.dbClient.db;
 
-    await db.delete(devices).where(eq(devices.id, deviceId));
+    const result = await db
+      .delete(devices)
+      .where(eq(devices.id, deviceId))
+      .returning({ id: devices.id });
+
+    if (result.length === 0) {
+      throw new NotFoundException('Device not found');
+    }
   }
 
   async findByGroup(groupId: string): Promise<Device[]> {
@@ -153,5 +172,33 @@ export class DevicesService {
       .orderBy(desc(devices.lastSeenAt));
 
     return result as Device[];
+  }
+
+  private async getDescendantLocationIds(
+    locationId: number,
+    userId?: string,
+  ): Promise<number[]> {
+    const db = this.dbClient.db;
+
+    const result = await db.execute(sql`
+      WITH RECURSIVE location_tree AS (
+        -- Base case: the location itself
+        SELECT id
+        FROM "locations"
+        WHERE "id" = ${locationId}
+        ${userId ? sql`AND "ownerId"::text = ${userId}` : sql``}
+        
+        UNION ALL
+        
+        -- Recursive case: all children
+        SELECT l.id
+        FROM "locations" l
+        JOIN location_tree lt ON l."parentId" = lt.id
+        ${userId ? sql`WHERE l."ownerId"::text = ${userId}` : sql``}
+      )
+      SELECT id FROM location_tree;
+    `);
+
+    return result.rows.map((row: { id: string }) => parseInt(row.id, 10));
   }
 }

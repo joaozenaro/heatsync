@@ -15,6 +15,7 @@ import { SupabaseService } from '../auth/supabase.service';
 import { User } from '@supabase/supabase-js';
 import { DevicesService, Device } from '../devices/devices.service';
 import { TemperatureService } from '../temperature/temperature.service';
+import { LocationsService } from '../locations/locations.service';
 
 interface SocketAuth {
   token?: string;
@@ -46,6 +47,7 @@ export class WebsocketGateway
     private supabaseService: SupabaseService,
     private devicesService: DevicesService,
     private temperatureService: TemperatureService,
+    private locationsService: LocationsService,
   ) {}
 
   afterInit() {
@@ -163,6 +165,7 @@ export class WebsocketGateway
     );
 
     try {
+      const userId = client.data.user?.id;
       const devices = await this.devicesService.findAllActive();
 
       const devicesWithTemp = await Promise.all(
@@ -170,11 +173,33 @@ export class WebsocketGateway
           const latestReading = await this.temperatureService.getLatestByDevice(
             device.id,
           );
+
+          // Fetch location information if device has a locationId
+          let location = null;
+          if (device.locationId && userId) {
+            try {
+              location = await this.locationsService.findById(
+                device.locationId,
+                userId,
+              );
+            } catch {
+              // Location not found or access denied
+            }
+          }
+
           return {
             ...device,
             currentTemperature: latestReading?.temperatureC || null,
             currentHumidity: latestReading?.humidity || null,
             lastReading: latestReading?.takenAt || null,
+            location: location
+              ? {
+                  id: location.id,
+                  name: location.name,
+                  type: location.type,
+                  description: location.description,
+                }
+              : null,
           };
         }),
       );

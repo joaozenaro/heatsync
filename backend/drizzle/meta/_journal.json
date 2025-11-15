@@ -8,6 +8,13 @@
       "when": 1762574848535,
       "tag": "0000_yellow_revanche",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1762829789270,
+      "tag": "0001_add_locations",
+      "breakpoints": true
     }
   ]
 }
