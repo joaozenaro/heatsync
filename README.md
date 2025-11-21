@@ -6,7 +6,7 @@ This project is a full-stack IoT dashboard application designed to monitor humid
 
 - [x] Real-time dashboard with Socket.IO
 - [x] Hierarchical device filtering: $Building \rightarrow Sector \rightarrow Floor \rightarrow Room \rightarrow Device$
-- [ ] Alert system for temperature/humidity threshold violations
+- [x] Alert system for temperature/humidity threshold violations
 - [ ] Data export for selected date ranges
 - [x] Authentication via Supabase Auth
 
@@ -23,8 +23,7 @@ This project is a full-stack IoT dashboard application designed to monitor humid
 | Device / Firmware | ESP32 with [PlatformIO](https://docs.platformio.org/en/latest/) |
 | Database          | [PostgreSQL](https://www.postgresql.org/)                       |
 | MQTT              | [Mosquitto MQTT](https://mosquitto.org/)                        |
-| SMTP Service      | [Resend](https://resend.com/home)                               |
-| CI/CD             | [GitHub Actions](https://docs.github.com/en/actions)            |
+| Email API service | [Resend](https://resend.com/home)                               |
 | Authentication    | [Supabase Auth](https://supabase.com/docs/guides/auth)          |
 | Hosting           | [Render](https://render.com/docs)                               |
 |                   | [Vercel](https://vercel.com/docs)                               |

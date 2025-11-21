@@ -11,6 +11,8 @@ interface TemperatureMessage {
   deviceId: string;
 }
 
+import { AlertsService } from './alerts/alerts.service';
+
 @Injectable()
 export class MqttService implements OnModuleInit {
   private client: mqtt.MqttClient;
@@ -20,6 +22,7 @@ export class MqttService implements OnModuleInit {
     private readonly temperatureService: TemperatureService,
     private readonly devicesService: DevicesService,
     private readonly websocketGateway: WebsocketGateway,
+    private readonly alertsService: AlertsService,
   ) {}
 
   onModuleInit(): void {
@@ -62,6 +65,12 @@ export class MqttService implements OnModuleInit {
             await this.devicesService.updateLastSeen(data.deviceId);
 
             this.websocketGateway.broadcastTemperatureUpdate(
+              data.deviceId,
+              data.temperature,
+              data.humidity,
+            );
+
+            await this.alertsService.checkAlerts(
               data.deviceId,
               data.temperature,
               data.humidity,

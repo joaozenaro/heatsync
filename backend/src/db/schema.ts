@@ -89,3 +89,34 @@ export const temperatureAggregates = pgTable(
     ),
   ],
 );
+
+export const alerts = pgTable(
+  'alerts',
+  {
+    id: serial('id').primaryKey(),
+    deviceId: varchar('device_id', { length: 128 }).references(
+      () => devices.id,
+      { onDelete: 'cascade' },
+    ),
+    type: varchar('type', { length: 20 }).notNull(), // 'temperature' or 'humidity'
+    minThreshold: real('min_threshold'),
+    maxThreshold: real('max_threshold'),
+    // Scheduling
+    startTime: varchar('start_time', { length: 5 }), // HH:mm
+    endTime: varchar('end_time', { length: 5 }), // HH:mm
+    startDate: timestamp('start_date', { withTimezone: true }),
+    endDate: timestamp('end_date', { withTimezone: true }),
+    daysOfWeek: integer('days_of_week').array(), // 0=Sunday, 6=Saturday
+    // Notification
+    emails: text('emails').array().notNull(),
+    enabled: boolean('enabled').notNull().default(true),
+    lastTriggeredAt: timestamp('last_triggered_at', { withTimezone: true }),
+    createdAt: timestamp('created_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp('updated_at', { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+  },
+  (table) => [index('alerts_device_idx').on(table.deviceId)],
+);

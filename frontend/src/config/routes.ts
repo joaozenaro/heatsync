@@ -2,6 +2,7 @@ import {
   IconBuilding,
   IconDashboard,
   IconDevices,
+  IconBell,
   type Icon,
 } from "@tabler/icons-react";
 
@@ -29,6 +30,13 @@ export const routes: RouteConfig[] = [
     path: "/locations",
     title: "Locations",
     icon: IconBuilding,
+    navMain: true,
+  },
+  {
+    path: "/alerts",
+    title: "Alerts",
+    icon: IconBell,
+    navMain: true,
   },
 ];
 

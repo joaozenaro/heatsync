@@ -8,6 +8,7 @@ import { WebsocketModule } from './websocket/websocket.module';
 import { SupabaseModule } from './auth/supabase.module';
 import { DevicesModule } from './devices/devices.module';
 import { LocationsModule } from './locations/locations.module';
+import { AlertsModule } from './alerts/alerts.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { LocationsModule } from './locations/locations.module';
     SupabaseModule,
     DevicesModule,
     LocationsModule,
+    AlertsModule,
   ],
   controllers: [AppController],
   providers: [AppService, MqttService],
