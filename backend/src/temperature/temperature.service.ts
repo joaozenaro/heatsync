@@ -35,6 +35,7 @@ export class TemperatureService {
   async saveIfChanged(
     temperature: number,
     deviceId: string,
+    deviceTimestamp: number,
     humidity?: number,
   ) {
     const db = this.dbClient.db;
@@ -71,6 +72,7 @@ export class TemperatureService {
       temperatureC: temperature,
       humidity: humidity ?? null,
       deviceId,
+      deviceTimestamp: new Date(deviceTimestamp),
     });
   }
   async aggregateAndStore(

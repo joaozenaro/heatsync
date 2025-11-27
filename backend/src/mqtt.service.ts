@@ -9,6 +9,7 @@ interface TemperatureMessage {
   temperature: number;
   humidity?: number;
   deviceId: string;
+  timestamp: number;
 }
 
 import { AlertsService } from './alerts/alerts.service';
@@ -59,6 +60,7 @@ export class MqttService implements OnModuleInit {
             await this.temperatureService.saveIfChanged(
               data.temperature,
               data.deviceId,
+              data.timestamp,
               data.humidity,
             );
 

@@ -1,0 +1,1 @@
+ALTER TABLE "temperature_readings" ADD COLUMN "device_timestamp" timestamp with time zone;

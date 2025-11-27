@@ -5,6 +5,7 @@
 #include <DHT.h>
 #include <FS.h>
 #include <time.h>
+#include <sys/time.h>
 
 #define LED_BUILTIN 2
 #define DHTPIN 4
@@ -132,10 +133,14 @@ void loop()
         {
             JsonDocument doc;
 
+            struct timeval tv;
+            gettimeofday(&tv, NULL);
+            unsigned long long timestamp_ms = (unsigned long long)(tv.tv_sec) * 1000 + (unsigned long long)(tv.tv_usec) / 1000;
+
             doc["deviceId"] = WiFi.macAddress();
             doc["temperature"] = temperature;
             doc["humidity"] = humidity;
-            doc["timestamp"] = time(nullptr);
+            doc["timestamp"] = timestamp_ms;
 
             // Serialize JSON to a string
             char payload[256];

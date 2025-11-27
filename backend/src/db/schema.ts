@@ -68,6 +68,7 @@ export const temperatureReadings = pgTable(
     temperatureC: real('temperature_c').notNull(),
     humidity: real('humidity'),
     deviceId: varchar('device_id', { length: 128 }),
+    deviceTimestamp: timestamp('device_timestamp', { withTimezone: true }),
   },
   (table) => [index('temperature_readings_taken_at_idx').on(table.takenAt)],
 );
